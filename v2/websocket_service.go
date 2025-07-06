@@ -603,6 +603,9 @@ type WsUserDataHandler func(event *WsUserDataEvent)
 // WsUserDataServe serve user data handler with listen key
 func WsUserDataServe(listenKey string, handler WsUserDataHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
 	endpoint := fmt.Sprintf("%s/%s", getWsEndpoint(), listenKey)
+
+	fmt.Println("%s",endpoint) //
+	
 	cfg := newWsConfig(endpoint)
 	wsHandler := func(message []byte) {
 		j, err := newJSON(message)
@@ -648,7 +651,7 @@ func WsUserDataServe(listenKey string, handler WsUserDataHandler, errHandler Err
 
 		handler(event)
 	}
-	return wsServe(cfg, wsHandler, errHandler)
+	return wsServe(cfg, wsHandler, errHandler) // runs goroutine and leave
 }
 
 // WsMarketStatHandler handle websocket that push single market statistics for 24hr

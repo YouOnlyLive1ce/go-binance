@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-
+	"fmt"
 	"github.com/gorilla/websocket"
 )
 
@@ -28,6 +28,9 @@ func newWsConfig(endpoint string) *WsConfig {
 }
 
 var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+	fmt.Println("wsServe")
+	WebsocketTimeout:= time.Minute*5
+
 	proxy := http.ProxyFromEnvironment
 	if cfg.Proxy != nil {
 		u, err := url.Parse(*cfg.Proxy)
@@ -55,7 +58,7 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 		// closed by the client.
 		defer close(doneC)
 		if WebsocketKeepalive {
-			keepAlive(c, WebsocketTimeout)
+			keepAlive(c, WebsocketTimeout) //PING PONG
 		}
 		// Wait for the stopC channel to be closed.  We do that in a
 		// separate goroutine because ReadMessage is a blocking
@@ -84,10 +87,12 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 }
 
 func keepAlive(c *websocket.Conn, timeout time.Duration) {
+	fmt.Println("keepalive ping pong")
 	ticker := time.NewTicker(timeout)
 
 	lastResponse := time.Now()
 
+	// Handle ping with pong responses
 	c.SetPingHandler(func(pingData string) error {
 		// Respond with Pong using the server's PING payload
 		err := c.WriteControl(
@@ -98,7 +103,7 @@ func keepAlive(c *websocket.Conn, timeout time.Duration) {
 		if err != nil {
 			return err
 		}
-
+		fmt.Println("Pong")
 		lastResponse = time.Now()
 
 		return nil
@@ -107,8 +112,9 @@ func keepAlive(c *websocket.Conn, timeout time.Duration) {
 	go func() {
 		defer ticker.Stop()
 		for {
-			<-ticker.C
+			<-ticker.C // uppercase?
 			if time.Since(lastResponse) > timeout {
+				fmt.Println("self closing websocket")
 				c.Close()
 				return
 			}
